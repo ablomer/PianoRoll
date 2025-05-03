@@ -15,6 +15,9 @@ import {
     setInstrumentPlayer,
 } from "./globals";
 import Soundfont, { InstrumentName } from "soundfont-player";
+import { Midi } from '@tonejs/midi'
+import { MidiJSON } from '@tonejs/midi'
+import { midi as getMidiNumber } from 'tonal-note'
 
 export const createNewDefaultLayer = async () => {
     return {
@@ -203,48 +206,52 @@ export const getNearestBar = (notes: NoteData[]) => {
     return farthestCol;
 };
 
-//@ts-ignore
-export const midiToNoteData = (midiData) => {
-    // @ts-ignore
-    const noteData = [];
-    for (const track of midiData.track) {
-        let currentColumn = 0;
-        const timeDivision = midiData.timeDivision;
-        let ongoingNotes = {};
-        // @ts-ignore
-        track.event.forEach((event, index) => {
-            currentColumn += Math.floor((event.deltaTime / timeDivision) * 8);
-            if (event.type === 9 && event.data[1] !== 0) {
-                // @ts-ignore
-                ongoingNotes[event.data[0]] = {
-                    start: currentColumn,
-                    velocity: event.data[1],
-                };
-            } else if (
-                event.type === 8 ||
-                (event.type === 9 && event.data[1] === 0)
-            ) {
-                // @ts-ignore
-                const noteStart = ongoingNotes[event.data[0]];
-                if (noteStart !== undefined) {
-                    const note = {
-                        row: event.data[0],
-                        note: allNotes[allNotes.length - 1 - event.data[0]],
-                        column: noteStart.start,
-                        units: currentColumn - noteStart.start,
-                        velocity: noteStart.velocity,
-                        pan: 0,
-                        id: getNewID(),
-                        selected: false,
-                    };
-                    noteData.push(note);
-                    // @ts-ignore
-                    delete ongoingNotes[event.data[0]];
-                }
-            }
+export const midiToNoteData = (midiData: MidiJSON): NoteData[] => {
+    const noteData: NoteData[] = [];
+
+    const timeDivision = midiData.header.ppq || 128; // Default PPQ if not specified
+    midiData.tracks.forEach(track => {
+      // Map with @tonejs/midi's absolute times
+      const bpm = midiData.header.tempos[0]?.bpm || 120; // Get BPM
+      const secondsPerBeat = 60 / bpm;
+      const columnsPerBeat = 8; // Internal grid structure assumption
+      const secondsPerColumn = secondsPerBeat / columnsPerBeat;
+
+      track.notes.forEach(note => {
+        const midiNumber = note.midi;
+        const noteName = allNotes.find(n => {
+          const parsedNote = getMidiNumber(n);
+          return parsedNote !== null && parsedNote === midiNumber;
         });
-    }
-    // @ts-ignore
+
+        if (noteName) {
+           const startColumn = Math.round(note.time / secondsPerColumn);
+           const durationUnits = Math.round(note.duration / secondsPerColumn);
+           const velocity = Math.round(note.velocity * 127); // Denormalize velocity
+
+           const newNote: NoteData = {
+             row: getRowFromNote(noteName),
+             note: noteName,
+             column: startColumn,
+             units: Math.max(1, durationUnits), // Ensure minimum 1 unit duration
+             velocity: velocity,
+             pan: 0,
+             id: getNewID(),
+             selected: false,
+           };
+           noteData.push(newNote);
+        } else {
+            console.warn(`Could not find matching note name for MIDI number: ${midiNumber}`);
+        }
+      });
+    });
+
+    // Sort notes by column, then row (descending for visual top-down)
+    noteData.sort((a, b) => {
+      if (a.column !== b.column) return a.column - b.column;
+      return b.row - a.row; // Higher row index (lower note) first for same column
+    });
+
     return noteData;
 };
 
@@ -256,5 +263,47 @@ export const ellipsized = (str: string, maxLength: number) => {
     return str;
 }
 
+// Convert notes data to MIDI file and return as a Blob using @tonejs/midi
+export const noteDataToMidi = (notes: NoteData[], bpm: number): Blob => {
+  const midi = new Midi();
+  midi.header.setTempo(bpm);
+  midi.header.timeSignatures.push({ ticks: 0, timeSignature: [4, 4] }); // Add time signature
+  midi.header.name = "PianoRoll Export";
+
+  const track = midi.addTrack();
+  track.name = "Piano Roll Layer";
+
+  // Conversion factors
+  const secondsPerBeat = 60 / bpm;
+  const columnsPerBeat = 8; // Based on midiToNoteData logic
+  const secondsPerColumn = secondsPerBeat / columnsPerBeat;
+
+  notes.forEach(note => {
+    const midiNumber = getMidiNumber(note.note);
+    if (midiNumber === null) {
+      console.warn(`Could not convert note ${note.note} to MIDI number. Skipping.`);
+      return; // Skip notes that can't be converted
+    }
+
+    const startTimeSeconds = note.column * secondsPerColumn;
+    const durationSeconds = note.units * secondsPerColumn;
+    const velocityNormalized = note.velocity / 127; // Normalize velocity to 0-1 range
+
+    track.addNote({
+      midi: midiNumber,
+      time: startTimeSeconds,
+      duration: durationSeconds,
+      velocity: velocityNormalized
+    });
+  });
+
+  // Return MIDI data as a Blob
+  return new Blob([midi.toArray()], { type: 'audio/midi' });
+};
+
 export const getNewID = () => idGen.next().value as number;
 
+export const optimizeHarmony = (notes: NoteData[]): NoteData[] => {
+    if (notes.length <= 2) return [...notes];
+    return notes; // TODO: Implement harmony optimization
+};

@@ -30,7 +30,8 @@ export type PositionRefs = {
 export enum FileFormat {
     //MP3 = "mp3",
     WAV = "wav",
-    //MIDI = "midi",
+    MIDI = "midi",
+    JSON = "json",
 }
 
 export type Instrument = {

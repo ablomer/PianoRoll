@@ -10,11 +10,11 @@
   },
   "dependencies": {
     "@pixi/react": "^7.1.0",
+    "@tonejs/midi": "^2.0.28",
     "audiobuffer-to-wav": "^1.0.0",
     "html2canvas": "^1.4.1",
     "lamejs": "^1.2.1",
     "lodash": "^4.17.21",
-    "midi-parser-js": "^4.0.4",
     "pixi.js": "^7.2.4",
     "react": "^18.2.0",
     "react-click-away-listener": "^2.2.3",
@@ -24,16 +24,20 @@
     "react-icons": "^4.9.0",
     "soundfont-player": "^0.12.0",
     "soundfont2": "^0.4.0",
+    "tonal-note": "^2.2.2",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
     "@types/uuid": "^9.0.1",
     "@vitejs/plugin-react": "^3.1.0",
     "autoprefixer": "^10.4.14",
+    "jest": "^29.7.0",
     "postcss": "^8.4.22",
     "tailwindcss": "^3.3.1",
+    "ts-jest": "^29.3.2",
     "typescript": "^4.9.3",
     "vite": "^4.2.0"
   }

@@ -28,6 +28,7 @@ import { DropDown } from "../dropdown/DropDown";
 import Soundfont, { InstrumentName } from "soundfont-player";
 import { audioContext } from "../../utils/globals";
 import ClickAwayListener from "react-click-away-listener";
+import { OptimizeHarmonyButton } from "./OptimizeHarmonyButton";
 
 const toolStyle = "text-white";
 
@@ -166,6 +167,8 @@ export const Header = ({
                             <p className="text-xs text-center">Track</p>
                         </div>
                     </div>
+
+                    <OptimizeHarmonyButton />
 
                     <div className="ml-2" title="Snap to Note Interval">
                         <DropDown

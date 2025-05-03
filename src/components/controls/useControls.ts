@@ -1,5 +1,5 @@
-import MidiParser from "midi-parser-js";
-import { useContext, useRef, useEffect } from "react";
+import React, { useContext, useRef, useEffect } from "react";
+import { Midi } from "@tonejs/midi";
 import { DEFAULT_SAVE_TIME } from "../../utils/constants";
 import {
     NotesContext,
@@ -17,6 +17,7 @@ import {
     playNote,
     timer,
     getNewID,
+    noteDataToMidi,
 } from "../../utils/util-functions";
 import toWav from 'audiobuffer-to-wav'
 import Soundfont, { Player } from "soundfont-player";
@@ -44,10 +45,43 @@ export const useControls = (playingType: PlayingType, setPlayingType: (type: Pla
     }, [playingType]);
 
     useEffect(() => {
-        MidiParser.parse(fileInputRef.current, (obj: any) => {
-            setNotes({ ...selectedLayerRef.current, notes: midiToNoteData(obj) });
-        });
-    }, []);
+        const inputElement = fileInputRef.current;
+
+        const handleFileChange = (event: Event) => {
+            const file = (event.target as HTMLInputElement).files?.[0];
+            if (file && inputElement) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const arrayBuffer = e.target?.result as ArrayBuffer;
+                        if (arrayBuffer) {
+                            const midi = new Midi(arrayBuffer);
+                            setNotes({ ...selectedLayerRef.current, notes: midiToNoteData(midi) });
+                        } else {
+                            console.error("Could not read file as ArrayBuffer.");
+                        }
+                    } catch (error) {
+                        console.error("Error parsing MIDI file:", error);
+                    }
+                };
+                reader.onerror = () => {
+                     console.error("Error reading file:", reader.error);
+                };
+                reader.readAsArrayBuffer(file);
+                inputElement.value = "";
+            }
+        };
+
+        if (inputElement) {
+            inputElement.addEventListener('change', handleFileChange);
+        }
+
+        return () => {
+            if (inputElement) {
+                inputElement.removeEventListener('change', handleFileChange);
+            }
+        };
+    }, [setNotes]);
 
     useEffect(() => {
         selectedLayerRef.current = notes;
@@ -401,9 +435,54 @@ export const useControls = (playingType: PlayingType, setPlayingType: (type: Pla
     }
 
     const exportPianoRoll = async (format: FileFormat, filename: string) => {
-        let lengthOfSong = getNearestBar(selectedLayerRef.current.notes) * (60 / (BPMRef.current * 8));
-        if (playingTypeRef.current === PlayingType.SONG)
-            lengthOfSong = Math.max(...layersRef.current.map(layer => getNearestBar(layer.notes))) * (60 / (BPMRef.current * 8));
+        // Handle MIDI export separately since it doesn't need audio rendering
+        if (format === FileFormat.MIDI) {
+            // Always export all notes from all layers
+            const notesToExport = layersRef.current.flatMap(layer => layer.notes);
+            
+            // Create MIDI file blob
+            const midiBlob = noteDataToMidi(notesToExport, BPMRef.current);
+            
+            // Download the file
+            const url = window.URL.createObjectURL(midiBlob);
+            const anchor = document.createElement("a");
+            anchor.download = filename + "." + format;
+            anchor.href = url;
+            anchor.click();
+            return;
+        }
+        
+        // Handle JSON export separately as it doesn't need audio rendering
+        if (format === FileFormat.JSON) {
+            const exportData = {
+                tempo: BPMRef.current,
+                layers: layersRef.current.map(layer => ({
+                    id: layer.id,
+                    name: layer.name,
+                    notes: layer.notes,
+                    instrument: {
+                        name: layer.instrument.name,
+                        clientName: layer.instrument.clientName
+                    }
+                }))
+            };
+            
+            // Create JSON file blob
+            const jsonBlob = new Blob([JSON.stringify(exportData, null, 2)], {
+                type: "application/json"
+            });
+            
+            // Download the file
+            const url = window.URL.createObjectURL(jsonBlob);
+            const anchor = document.createElement("a");
+            anchor.download = filename + "." + format;
+            anchor.href = url;
+            anchor.click();
+            return;
+        }
+        
+        // For WAV format, continue with audio rendering
+        const lengthOfSong = Math.max(...layersRef.current.map(layer => getNearestBar(layer.notes))) * (60 / (BPMRef.current * 8));
 
         const offlineContext = new OfflineAudioContext({
             numberOfChannels: 2,
@@ -411,26 +490,16 @@ export const useControls = (playingType: PlayingType, setPlayingType: (type: Pla
             sampleRate: 44100,
         });
 
-        switch (playingTypeRef.current) {
-            case PlayingType.TRACK:
-                // @ts-ignore
-                const instrument = await Soundfont.instrument(offlineContext, selectedLayerRef.current.instrument.name);
-                playTrackOffline(instrument);
-                break;
-            case PlayingType.SONG:
-                const instrumentPromises = layersRef.current.map(async layer => {
-                    // @ts-ignore
-                    const instrument = await Soundfont.instrument(offlineContext, layer.instrument.name);
-                    return ({
-                        id: layer.id,
-                        instrument
-                    });
-                });
-                const instruments = await Promise.all(instrumentPromises);
-                playSongOffline(instruments);
-                break;
-        }
-
+        const instrumentPromises = layersRef.current.map(async layer => {
+            // @ts-ignore
+            const instrument = await Soundfont.instrument(offlineContext, layer.instrument.name);
+            return ({
+                id: layer.id,
+                instrument
+            });
+        });
+        const instruments = await Promise.all(instrumentPromises);
+        playSongOffline(instruments);
 
         offlineContext.startRendering().then(async (buffer) => {
             switch (format) {
@@ -448,7 +517,6 @@ export const useControls = (playingType: PlayingType, setPlayingType: (type: Pla
                     break;
                 }
             }
-
         });
     }
 
