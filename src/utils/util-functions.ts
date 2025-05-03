@@ -302,8 +302,3 @@ export const noteDataToMidi = (notes: NoteData[], bpm: number): Blob => {
 };
 
 export const getNewID = () => idGen.next().value as number;
-
-export const optimizeHarmony = (notes: NoteData[]): NoteData[] => {
-    if (notes.length <= 2) return [...notes];
-    return notes; // TODO: Implement harmony optimization
-};

@@ -61,6 +61,17 @@ function App() {
         }
     }, [notes]);
 
+    // Update notes (selected layer) when layers array changes
+    useEffect(() => {
+        if (hasMounted) {
+            const currentSelectedLayer = layers.find(layer => layer.id === notes.id);
+            if (currentSelectedLayer && JSON.stringify(currentSelectedLayer) !== JSON.stringify(notes)) {
+                // Check if the layer data actually changed to avoid infinite loops
+                setNotes(currentSelectedLayer);
+            }
+        }
+    }, [layers, notes.id, hasMounted]); // Depend on layers, notes.id, and hasMounted
+
     /**
      * Initialize layers.
      * If no local storage, create new default layer

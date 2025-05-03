@@ -21,7 +21,7 @@
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^18.2.0",
-    "react-icons": "^4.9.0",
+    "react-icons": "^4.12.0",
     "soundfont-player": "^0.12.0",
     "soundfont2": "^0.4.0",
     "tonal-note": "^2.2.2",
