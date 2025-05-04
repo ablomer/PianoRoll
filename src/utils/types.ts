@@ -9,6 +9,7 @@ export type NoteData = {
     pan: number;
     id: number;
     selected: boolean;
+    color?: string;
 };
 export type Position = {
     x: number;

@@ -148,7 +148,7 @@ export const getFrequencyFromNote = (note: string) => {
     return (NOTES[noteName] as number) * Math.pow(2, octave);
 };
 
-export const makeNewNote = (row: number, col: number, noteLength: number) => {
+export const makeNewNote = (row: number, col: number, noteLength: number): NoteData => {
     return {
         row: row,
         column: col,
@@ -158,6 +158,7 @@ export const makeNewNote = (row: number, col: number, noteLength: number) => {
         pan: 1,
         id: getNewID(),
         selected: false,
+        color: undefined,
     };
 };
 
@@ -238,6 +239,7 @@ export const midiToNoteData = (midiData: MidiJSON): NoteData[] => {
              pan: 0,
              id: getNewID(),
              selected: false,
+             color: undefined,
            };
            noteData.push(newNote);
         } else {

@@ -57,7 +57,8 @@ export const Grid = ({
         const height = NOTE_HEIGHT;
         const width = NOTE_WIDTH * note.units;
 
-        const noteColorRGB = hexToRgb(NOTE_COLOR);
+        const baseColor = note.color || NOTE_COLOR;
+        const noteColorRGB = hexToRgb(baseColor);
         const noteColor = `rgba(${noteColorRGB.r}, ${noteColorRGB.g}, ${
             noteColorRGB.b
         }, ${ghost ? 0.5 : 1})`;

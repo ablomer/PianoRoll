@@ -6,6 +6,19 @@ import { Layer, NoteData } from "../../utils/types";
 import { midi as getMidiNumber } from 'tonal-note';
 import { allNotes } from "../../utils/globals";
 
+// Define a color palette for voices
+const voiceColors: { [key: number]: string } = {
+  0: "#FF6B6B", // Voice 1 (e.g., Red)
+  1: "#4ECDC4", // Voice 2 (e.g., Teal)
+  2: "#45B7D1", // Voice 3 (e.g., Blue)
+  3: "#FED766", // Voice 4 (e.g., Yellow)
+  4: "#FF9A8B", // Voice 5 (e.g., Salmon)
+  5: "#A0EADE", // Voice 6 (e.g., Light Teal)
+  6: "#B1AFFF", // Voice 7 (e.g., Lavender)
+  7: "#FFD166", // Voice 8 (e.g., Orange Yellow)
+  8: "#7FFFD4"  // Voice 9 (e.g., Aquamarine)
+};
+
 // Import the Note interface from theory-functions
 interface Note {
   pitch: number;
@@ -102,6 +115,9 @@ export const OptimizeHarmonyDialog = ({
         // Calculate row index based on reversed allNotes array
         const rowIndex = allNotes.length - 1 - noteIndex;
 
+        // Assign color based on voice, default if voice is undefined or not in palette
+        const noteColor = note.voice !== undefined ? voiceColors[note.voice] : undefined;
+
         return {
             row: rowIndex,
             column: note.position,
@@ -111,6 +127,7 @@ export const OptimizeHarmonyDialog = ({
             pan: 0,
             id: Math.random(), // Potential improvement area
             selected: false,
+            color: noteColor, // Assign the determined color
         };
       })
       .filter((n): n is NoteData => n !== null); // Filter out any null values
