@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import ClickAwayListener from "react-click-away-listener";
 import { LayersContext } from "../../utils/context";
 import { optimizeVoiceLeading, pitchToNoteName } from "../../utils/theory-functions";
@@ -26,6 +26,21 @@ export const OptimizeHarmonyDialog = ({
   const { layers, setLayers } = useContext(LayersContext);
   const [melodyLayerId, setMelodyLayerId] = useState<number | string>("");
   const [harmonyLayerId, setHarmonyLayerId] = useState<number | string>("");
+
+  useEffect(() => {
+    if (open) {
+      // Set defaults only when the dialog becomes visible
+      if (layers.length > 0 && melodyLayerId === "") {
+        setMelodyLayerId(layers[0].id);
+      }
+      if (layers.length > 1 && harmonyLayerId === "") {
+        setHarmonyLayerId(layers[1].id);
+      }
+    } else {
+      // Optional: Reset when closing? Or keep the last selection?
+      // For now, let's not reset to allow users to reopen with previous selections
+    }
+  }, [open, layers]); // Rerun when open state or layers change
 
   if (!open) return <></>;
 

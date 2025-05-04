@@ -345,9 +345,6 @@ interface Note {
     const note = noteNames[pitch % 12];
     return `${note}${octave}`;
   }
-  
-  // Export the main function and utility
-  export { optimizeVoiceLeading, pitchToNoteName };
 
 /**
  * Adjusts the octave of all harmony notes based on the lowest melody note.
@@ -389,3 +386,6 @@ function adjustHarmonyOctaveRelativeToMelody(chords: Chord[]): void {
     }
   }
 }
+  
+// Export the main function and utility
+export { optimizeVoiceLeading, pitchToNoteName };
